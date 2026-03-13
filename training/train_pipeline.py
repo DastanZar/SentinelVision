@@ -127,10 +127,9 @@ class TrainingPipeline:
         print(f"  Model saved to: {version_dir}")
         print(f"  Version: {self.metadata['version']}")
         
-        latest_link = self.model_registry_path / "latest"
-        if latest_link.exists():
-            latest_link.unlink()
-        os.symlink(version_dir, latest_link)
+        latest_file = self.model_registry_path / "latest.txt"
+        with open(latest_file, "w") as f:
+            f.write(version_dir.name)
         
         return str(version_dir)
 

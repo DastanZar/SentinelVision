@@ -31,6 +31,14 @@ def find_latest_model_version() -> Path:
     if not MODEL_REGISTRY_PATH.exists():
         raise FileNotFoundError(f"Model registry not found at {MODEL_REGISTRY_PATH}")
     
+    latest_file = MODEL_REGISTRY_PATH / "latest.txt"
+    if latest_file.exists():
+        with open(latest_file, "r") as f:
+            latest_version_name = f.read().strip()
+        latest_version = MODEL_REGISTRY_PATH / latest_version_name
+        if latest_version.exists() and latest_version.is_dir():
+            return latest_version
+    
     versions = [d for d in MODEL_REGISTRY_PATH.iterdir() if d.is_dir() and d.name.startswith("model_v")]
     if not versions:
         raise FileNotFoundError("No model versions found in registry")
