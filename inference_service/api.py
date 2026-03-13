@@ -2,6 +2,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
+from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
@@ -44,12 +45,39 @@ Training Pipeline → Model Registry → Inference API → Monitoring → Drift 
         "name": "SentinelVision Platform",
         "url": "https://github.com/DastanZar/SentinelVision"
     },
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=None,
+    redoc_url=None,
     openapi_url="/openapi.json"
 )
 
 app.mount("/static", StaticFiles(directory="inference_service/static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_docs():
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="SentinelVision AI Platform",
+        swagger_ui_parameters={
+            "syntaxHighlight": {"theme": "monokai"},
+            "tryItOutEnabled": True,
+            "persistAuthorization": True,
+            "docExpansion": "list",
+            "filter": True,
+            "showExtensions": True,
+            "showCommonExtensions": True,
+        },
+        swagger_css_url="/static/swagger.css",
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc():
+    from fastapi.openapi.docs import get_redoc_html
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title="SentinelVision AI Platform - ReDoc"
+    )
 
 model: Optional[AnomalyDetector] = None
 processor: Optional[DataProcessor] = None
@@ -63,88 +91,29 @@ stop_reload_event = threading.Event()
 
 @app.get("/docs", include_in_schema=False)
 async def custom_docs():
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>SentinelVision AI Platform</title>
-        <link rel="stylesheet" type="text/css" href="/static/swagger.css">
-        <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    </head>
-    <body>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span class="icon">🌙</span>
-            <span class="text">Dark Mode</span>
-        </button>
-        <div id="swagger-ui"></div>
-        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
-        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
-        <script>
-            function toggleTheme() {
-                const body = document.body;
-                const btn = document.querySelector('.theme-toggle');
-                const icon = btn.querySelector('.icon');
-                const text = btn.querySelector('.text');
-                
-                body.classList.toggle('dark-mode');
-                
-                if (body.classList.contains('dark-mode')) {
-                    icon.textContent = '☀️';
-                    text.textContent = 'Light Mode';
-                    localStorage.setItem('theme', 'dark');
-                } else {
-                    icon.textContent = '🌙';
-                    text.textContent = 'Dark Mode';
-                    localStorage.setItem('theme', 'light');
-                }
-            }
-            
-            // Check saved theme preference
-            if (localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-            
-            window.onload = function() {
-                // Update button state if dark mode is active
-                if (document.body.classList.contains('dark-mode')) {
-                    const btn = document.querySelector('.theme-toggle');
-                    const icon = btn.querySelector('.icon');
-                    const text = btn.querySelector('.text');
-                    icon.textContent = '☀️';
-                    text.textContent = 'Light Mode';
-                }
-                
-                const ui = SwaggerUIBundle({
-                    url: "/openapi.json",
-                    dom_id: "#swagger-ui",
-                    deepLinking: true,
-                    presets: [
-                        SwaggerUIBundle.presets.apis,
-                        SwaggerUIStandalonePreset
-                    ],
-                    layout: "StandaloneLayout",
-                    docExpansion: "list",
-                    filter: true,
-                    showExtensions: true,
-                    showCommonExtensions: true,
-                    syntaxHighlight: {
-                        activate: true,
-                        theme: "monokai"
-                    },
-                    tryItOutEnabled: true,
-                    persistAuthorization: true,
-                    oauth2RedirectUrl: "/docs/oauth2-redirect"
-                });
-                window.ui = ui;
-            };
-        </script>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="SentinelVision AI Platform",
+        swagger_ui_parameters={
+            "syntaxHighlight": {"theme": "monokai"},
+            "tryItOutEnabled": True,
+            "persistAuthorization": True,
+            "docExpansion": "list",
+            "filter": True,
+            "showExtensions": True,
+            "showCommonExtensions": True,
+        },
+        swagger_css_url="/static/swagger.css",
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc():
+    from fastapi.openapi.docs import get_redoc_html
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title="SentinelVision AI Platform - ReDoc"
+    )
 
 
 def find_latest_model_version() -> Path:
