@@ -1,0 +1,8 @@
+{
+  "accuracy": 0.92,
+  "precision": 0.88,
+  "recall": 0.85,
+  "f1_score": 0.86,
+  "samples": 1000,
+  "timestamp": "2026-01-15T10:30:00Z"
+}
