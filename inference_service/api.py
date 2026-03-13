@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 import json
 
 from sentinelvision_core import AnomalyDetector, DataProcessor
-from monitoring.prediction_logger import PredictionLogger
+from monitoring.monitoring_service import get_monitoring_service
 
 
 MODEL_REGISTRY_PATH = Path("model_registry")
@@ -14,7 +14,7 @@ app = FastAPI(title="SentinelVision Inference API")
 
 model: Optional[AnomalyDetector] = None
 processor: Optional[DataProcessor] = None
-prediction_logger: Optional[PredictionLogger] = None
+monitoring_service = None
 model_metadata: Dict[str, Any] = {}
 
 
@@ -31,7 +31,7 @@ def find_latest_model_version() -> Path:
 
 
 def load_model_from_registry():
-    global model, processor, prediction_logger, model_metadata
+    global model, processor, monitoring_service, model_metadata
     
     try:
         latest_version = find_latest_model_version()
@@ -45,13 +45,13 @@ def load_model_from_registry():
         
         model = AnomalyDetector.load(str(model_path))
         processor = DataProcessor()
-        prediction_logger = PredictionLogger()
+        monitoring_service = get_monitoring_service()
         
     except Exception as e:
         print(f"Warning: Could not load model from registry: {e}")
         model = AnomalyDetector()
         processor = DataProcessor()
-        prediction_logger = PredictionLogger()
+        monitoring_service = get_monitoring_service()
 
 
 class PredictionRequest(BaseModel):
@@ -71,7 +71,7 @@ async def startup_event():
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(request: PredictionRequest):
-    global model, processor, prediction_logger, model_metadata
+    global model, processor, monitoring_service, model_metadata
     
     if model is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
@@ -85,12 +85,12 @@ async def predict(request: PredictionRequest):
     predictions = result.get("predictions", [])
     scores = result.get("scores", [])
     
-    if prediction_logger:
+    if monitoring_service:
         for i, (input_data, pred, score) in enumerate(zip(request.data, predictions, scores)):
-            prediction_logger.log_prediction(
+            monitoring_service.record_prediction_event(
                 input_data=input_data,
                 prediction=pred,
-                score=score,
+                confidence_score=score,
                 model_version=model_metadata.get("version", "unknown")
             )
     
@@ -109,6 +109,27 @@ async def model_info():
         "created_at": model_metadata.get("created_at", "unknown"),
         "metrics": model_metadata.get("metrics", {})
     }
+
+
+@app.get("/monitoring/metrics")
+async def get_metrics(window_minutes: Optional[int] = None):
+    if monitoring_service is None:
+        raise HTTPException(status_code=500, detail="Monitoring service not initialized")
+    return monitoring_service.get_metrics_summary(window_minutes)
+
+
+@app.get("/monitoring/drift")
+async def get_drift_status():
+    if monitoring_service is None:
+        raise HTTPException(status_code=500, detail="Monitoring service not initialized")
+    return monitoring_service.get_drift_status()
+
+
+@app.get("/monitoring/status")
+async def get_full_status():
+    if monitoring_service is None:
+        raise HTTPException(status_code=500, detail="Monitoring service not initialized")
+    return monitoring_service.get_full_status()
 
 
 @app.get("/health")

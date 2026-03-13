@@ -65,13 +65,76 @@ The monitoring module (`monitoring/`) tracks model performance:
 
 - **prediction_logger.py** - Logs predictions with timestamp, confidence score, and model version
 - **metrics.py** - Calculates model performance metrics
-- **drift_detection.py** - Detects data drift using statistical methods
+- **drift_detector.py** - Detects data drift using statistical methods
+- **monitoring_service.py** - Coordinates all monitoring components
 
 Prediction logs include:
 - Prediction result
 - Confidence score
 - Timestamp
 - Model version
+
+## Monitoring and Observability
+
+SentinelVision provides a comprehensive monitoring infrastructure for production ML systems:
+
+### Prediction Logging
+
+Every prediction is logged with rich metadata in JSON format:
+
+```python
+{
+    "timestamp": "2026-01-15T10:30:00Z",
+    "input_metadata": {},
+    "input_data": [1.0, 2.0, 3.0, ...],
+    "prediction": true,
+    "confidence_score": 0.85,
+    "model_version": "v1"
+}
+```
+
+Logs are stored in `logs/predictions.log` and can be queried for analysis.
+
+### Metrics Aggregation
+
+The metrics aggregator (`monitoring/metrics_aggregator.py`) calculates:
+
+- **Prediction Distribution** - Ratio of normal vs anomaly predictions
+- **Anomaly Rate** - Percentage of anomalies detected
+- **Confidence Statistics** - Mean, std, min, max, percentiles of confidence scores
+
+Metrics can be queried for specific time windows using the API.
+
+### Drift Detection
+
+The drift detector (`monitoring/drift_detector.py`) monitors:
+
+- **Prediction Drift** - Changes in anomaly rate compared to baseline
+- **Feature Drift** - Changes in input feature distributions
+- **Confidence Drift** - Changes in model confidence over time
+
+Drift detection uses Population Stability Index (PSI) and statistical thresholds.
+
+### Model Health Monitoring
+
+The monitoring service (`monitoring/monitoring_service.py`) provides a unified interface:
+
+```python
+from monitoring.monitoring_service import record_prediction_event
+
+record_prediction_event(
+    input_data=[1.0, 2.0, 3.0],
+    prediction=True,
+    confidence_score=0.85,
+    model_version="v1"
+)
+```
+
+### API Endpoints for Monitoring
+
+- `GET /monitoring/metrics` - Get current metrics summary
+- `GET /monitoring/drift` - Get drift detection status
+- `GET /monitoring/status` - Get full system status
 
 ## Project Structure
 
