@@ -15,6 +15,9 @@ from monitoring.monitoring_service import get_monitoring_service
 from ml_pipeline.retraining import get_retraining_manager, get_retraining_scheduler
 
 
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
+
 MODEL_REGISTRY_PATH = Path("model_registry")
 MODEL_RELOAD_INTERVAL = 60
 
@@ -50,7 +53,7 @@ Training Pipeline → Model Registry → Inference API → Monitoring → Drift 
     openapi_url="/openapi.json"
 )
 
-app.mount("/static", StaticFiles(directory="inference_service/static"), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/docs", include_in_schema=False)
