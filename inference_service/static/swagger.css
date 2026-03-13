@@ -1,0 +1,298 @@
+/* SentinelVision Custom Swagger Styling */
+
+/* Base font */
+.swagger-ui .swagger-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header and branding */
+.swagger-ui .topbar {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  padding: 12px 20px;
+  border-bottom: none;
+}
+
+.swagger-ui .topbar .swagger-ui .logo__title {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}
+
+.swagger-ui .topbar a {
+  display: none;
+}
+
+/* Info section */
+.swagger-ui .info {
+  margin: 40px 0;
+  padding: 25px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.swagger-ui .info .title {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1e3a5f;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.swagger-ui .info .description {
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.swagger-ui .info .description pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.swagger-ui .info .description code {
+  background: #f1f5f9;
+  color: #2563eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* Model section styling */
+.swagger-ui .model-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Endpoint method badges */
+.swagger-ui .opblock-tag {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e3a5f;
+}
+
+.swagger-ui .opblock-tag:hover {
+  background: #f1f5f9;
+}
+
+/* Method badges */
+.swagger-ui .opblock method {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.swagger-ui .opblock-method-get {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.swagger-ui .opblock-method-post {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.swagger-ui .opblock-method-put {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.swagger-ui .opblock-method-delete {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.swagger-ui .opblock-method-patch {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
+/* Operation block */
+.swagger-ui .opblock {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.swagger-ui .opblock:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.swagger-ui .opblock .opblock-summary {
+  padding: 16px 20px;
+}
+
+.swagger-ui .opblock .opblock-summary-path {
+  font-weight: 600;
+  color: #334155;
+}
+
+.swagger-ui .opblock .opblock-summary-description {
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Parameters */
+.swagger-ui .parameters {
+  padding: 20px;
+  background: #fafafa;
+  border-top: 1px solid #e2e8f0;
+}
+
+.swagger-ui .parameters .parameter-name {
+  color: #1e3a5f;
+  font-weight: 600;
+}
+
+.swagger-ui .parameters input,
+.swagger-ui .parameters select,
+.swagger-ui .parameters textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.swagger-ui .parameters input:focus,
+.swagger-ui .parameters select:focus,
+.swagger-ui .parameters textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+/* Response sections */
+.swagger-ui .response-container {
+  background: #fafafa;
+  border-top: 1px solid #e2e8f0;
+}
+
+.swagger-ui .response {
+  padding: 20px;
+}
+
+.swagger-ui .response .response-header {
+  color: #1e3a5f;
+  font-weight: 600;
+}
+
+/* Buttons */
+.swagger-ui .btn {
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  transition: all 0.2s;
+}
+
+.swagger-ui .btn:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.swagger-ui .btn.execute {
+  background: #10b981;
+}
+
+.swagger-ui .btn.execute:hover {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Try it out button */
+.swagger-ui .try-out__btn {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+}
+
+.swagger-ui .try-out__btn:hover {
+  background: #e2e8f0;
+  color: #1e3a5f;
+}
+
+/* Server selector */
+.swagger-ui .servers {
+  margin-bottom: 20px;
+}
+
+.swagger-ui .servers select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+}
+
+/* Loading animation */
+.swagger-ui .loading-container .loading:after {
+  border-color: #2563eb transparent #2563eb transparent;
+}
+
+/* Scrollbar styling */
+.swagger-ui ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.swagger-ui ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.swagger-ui ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.swagger-ui ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Version badge */
+.swagger-ui .version-badge {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Contact info */
+.swagger-ui .info .contact {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.swagger-ui .info .contact a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.swagger-ui .info .contact a:hover {
+  text-decoration: underline;
+}

@@ -1,5 +1,7 @@
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import json
@@ -15,7 +17,39 @@ from ml_pipeline.retraining import get_retraining_manager, get_retraining_schedu
 MODEL_REGISTRY_PATH = Path("model_registry")
 MODEL_RELOAD_INTERVAL = 60
 
-app = FastAPI(title="SentinelVision Inference API")
+app = FastAPI(
+    title="SentinelVision AI Platform",
+    description="""
+# SentinelVision - Production ML Platform
+
+SentinelVision is an end-to-end ML platform that manages training pipelines, model registry, inference APIs, monitoring, drift detection, and automated retraining.
+
+## System Overview
+
+```
+Training Pipeline → Model Registry → Inference API → Monitoring → Drift Detection → Retraining
+```
+
+## Features
+
+- **Training Pipeline** - Automated model training with evaluation
+- **Model Registry** - Versioned model storage with metadata
+- **Inference API** - FastAPI-based prediction service
+- **Monitoring** - Real-time metrics and prediction logging
+- **Drift Detection** - Automatic detection of data/concept drift
+- **Automated Retraining** - Self-healing model updates based on monitoring signals
+""",
+    version="1.0",
+    contact={
+        "name": "SentinelVision Platform",
+        "url": "https://github.com/DastanZar/SentinelVision"
+    },
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
+
+app.mount("/static", StaticFiles(directory="inference_service/static"), name="static")
 
 model: Optional[AnomalyDetector] = None
 processor: Optional[DataProcessor] = None
@@ -25,6 +59,55 @@ current_model_version: Optional[str] = None
 reload_lock = threading.Lock()
 model_reload_thread: Optional[threading.Thread] = None
 stop_reload_event = threading.Event()
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_docs():
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>SentinelVision AI Platform</title>
+        <link rel="stylesheet" type="text/css" href="/static/swagger.css">
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
+        <script>
+            window.onload = function() {
+                const ui = SwaggerUIBundle({
+                    url: "/openapi.json",
+                    dom_id: "#swagger-ui",
+                    deepLinking: true,
+                    presets: [
+                        SwaggerUIBundle.presets.apis,
+                        SwaggerUIStandalonePreset
+                    ],
+                    layout: "StandaloneLayout",
+                    docExpansion: "list",
+                    filter: true,
+                    showExtensions: true,
+                    showCommonExtensions: true,
+                    syntaxHighlight: {
+                        activate: true,
+                        theme: "monokai"
+                    },
+                    tryItOutEnabled: true,
+                    persistAuthorization: true,
+                    oauth2RedirectUrl: "/docs/oauth2-redirect"
+                });
+                window.ui = ui;
+            };
+        </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 
 def find_latest_model_version() -> Path:
@@ -145,7 +228,7 @@ async def shutdown_event():
     print("[Shutdown] Model reload worker stopped")
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 async def predict(request: PredictionRequest):
     global model, processor, monitoring_service, model_metadata
     
@@ -177,7 +260,7 @@ async def predict(request: PredictionRequest):
     )
 
 
-@app.get("/model/info")
+@app.get("/model/info", tags=["Model Management"])
 async def model_info():
     return {
         "model_name": model_metadata.get("model_name", "unknown"),
@@ -187,7 +270,7 @@ async def model_info():
     }
 
 
-@app.get("/model/reload")
+@app.get("/model/reload", tags=["Model Management"])
 async def trigger_model_reload():
     reloaded = reload_model_if_needed()
     return {
@@ -197,7 +280,7 @@ async def trigger_model_reload():
     }
 
 
-@app.get("/retraining/status")
+@app.get("/retraining/status", tags=["Retraining"])
 async def get_retraining_status():
     try:
         from ml_pipeline.retraining import get_retraining_scheduler
@@ -211,7 +294,7 @@ async def get_retraining_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/retraining/trigger")
+@app.post("/retraining/trigger", tags=["Retraining"])
 async def trigger_retraining():
     try:
         from ml_pipeline.retraining import get_retraining_scheduler
@@ -225,28 +308,28 @@ async def trigger_retraining():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/monitoring/metrics")
+@app.get("/monitoring/metrics", tags=["Monitoring"])
 async def get_metrics(window_minutes: Optional[int] = None):
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_metrics_summary(window_minutes)
 
 
-@app.get("/monitoring/drift")
+@app.get("/monitoring/drift", tags=["Monitoring"])
 async def get_drift_status():
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_drift_status()
 
 
-@app.get("/monitoring/status")
+@app.get("/monitoring/status", tags=["Monitoring"])
 async def get_full_status():
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_full_status()
 
 
-@app.get("/health")
+@app.get("/health", tags=["System"])
 async def health_check():
     return {
         "status": "healthy",
