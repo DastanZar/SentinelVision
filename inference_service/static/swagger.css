@@ -296,3 +296,203 @@
 .swagger-ui .info .contact a:hover {
   text-decoration: underline;
 }
+
+/* Dark Mode Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 9999;
+  background: #334155;
+  border: 1px solid #475569;
+  color: #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle:hover {
+  background: #475569;
+  transform: translateY(-1px);
+}
+
+.theme-toggle .icon {
+  font-size: 16px;
+}
+
+/* Dark Mode Styles */
+body.dark-mode {
+  background: #0f172a;
+}
+
+body.dark-mode .swagger-ui {
+  background: #0f172a;
+}
+
+body.dark-mode .swagger-ui .swagger-container {
+  background: #0f172a;
+}
+
+body.dark-mode .swagger-ui .topbar {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-bottom: 1px solid #334155;
+}
+
+body.dark-mode .swagger-ui .info {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .swagger-ui .info .title {
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui .info .description {
+  color: #cbd5e1;
+}
+
+body.dark-mode .swagger-ui .info .description code {
+  background: #334155;
+  color: #60a5fa;
+}
+
+body.dark-mode .swagger-ui .info .description pre {
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+body.dark-mode .swagger-ui .opblock-tag {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui .opblock-tag:hover {
+  background: #334155;
+}
+
+body.dark-mode .swagger-ui .opblock {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .swagger-ui .opblock:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .swagger-ui .opblock .opblock-summary {
+  border-bottom-color: #334155;
+}
+
+body.dark-mode .swagger-ui .opblock .opblock-summary-path {
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui .opblock .opblock-summary-description {
+  color: #94a3b8;
+}
+
+body.dark-mode .swagger-ui .parameters {
+  background: #0f172a;
+  border-top-color: #334155;
+}
+
+body.dark-mode .swagger-ui .parameters .parameter-name {
+  color: #60a5fa;
+}
+
+body.dark-mode .swagger-ui .parameters input,
+body.dark-mode .swagger-ui .parameters select,
+body.dark-mode .swagger-ui .parameters textarea {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui .parameters input:focus,
+body.dark-mode .swagger-ui .parameters select:focus,
+body.dark-mode .swagger-ui .parameters textarea:focus {
+  border-color: #3b82f6;
+}
+
+body.dark-mode .swagger-ui .response-container {
+  background: #0f172a;
+  border-top-color: #334155;
+}
+
+body.dark-mode .swagger-ui .response {
+  background: #1e293b;
+}
+
+body.dark-mode .swagger-ui .response .response-header {
+  color: #60a5fa;
+}
+
+body.dark-mode .swagger-ui .try-out__btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui .try-out__btn:hover {
+  background: #475569;
+}
+
+body.dark-mode .swagger-ui .btn {
+  background: #3b82f6;
+}
+
+body.dark-mode .swagger-ui .btn:hover {
+  background: #2563eb;
+}
+
+body.dark-mode .swagger-ui .servers select {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+body.dark-mode .swagger-ui ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+body.dark-mode .swagger-ui ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+body.dark-mode .swagger-ui ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+body.dark-mode .swagger-ui .info .contact {
+  border-top-color: #334155;
+}
+
+body.dark-mode .swagger-ui .info .contact a {
+  color: #60a5fa;
+}
+
+body.dark-mode .model-box {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+body.dark-mode .model-title {
+  color: #f1f5f9 !important;
+}
+
+body.dark-mode .prop-type {
+  color: #60a5fa !important;
+}
+
+body.dark-mode .prop-format {
+  color: #94a3b8 !important;
+}

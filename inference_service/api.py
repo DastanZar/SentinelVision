@@ -75,11 +75,48 @@ async def custom_docs():
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     </head>
     <body>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="icon">🌙</span>
+            <span class="text">Dark Mode</span>
+        </button>
         <div id="swagger-ui"></div>
         <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
         <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
         <script>
+            function toggleTheme() {
+                const body = document.body;
+                const btn = document.querySelector('.theme-toggle');
+                const icon = btn.querySelector('.icon');
+                const text = btn.querySelector('.text');
+                
+                body.classList.toggle('dark-mode');
+                
+                if (body.classList.contains('dark-mode')) {
+                    icon.textContent = '☀️';
+                    text.textContent = 'Light Mode';
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    icon.textContent = '🌙';
+                    text.textContent = 'Dark Mode';
+                    localStorage.setItem('theme', 'light');
+                }
+            }
+            
+            // Check saved theme preference
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            
             window.onload = function() {
+                // Update button state if dark mode is active
+                if (document.body.classList.contains('dark-mode')) {
+                    const btn = document.querySelector('.theme-toggle');
+                    const icon = btn.querySelector('.icon');
+                    const text = btn.querySelector('.text');
+                    icon.textContent = '☀️';
+                    text.textContent = 'Light Mode';
+                }
+                
                 const ui = SwaggerUIBundle({
                     url: "/openapi.json",
                     dom_id: "#swagger-ui",
@@ -195,6 +232,21 @@ def model_reload_worker():
 
 class PredictionRequest(BaseModel):
     data: List[List[float]]
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "data": [[0.21, 0.45, 0.12, 0.67, 0.33, 0.89, 0.15, 0.42, 0.78, 0.56]]
+                },
+                {
+                    "data": [
+                        [1.2, 3.4, 5.6, 2.1, 4.3],
+                        [0.5, 0.8, 0.3, 0.9, 0.7]
+                    ]
+                }
+            ]
+        }
+    }
 
 
 class PredictionResponse(BaseModel):
@@ -202,6 +254,23 @@ class PredictionResponse(BaseModel):
     scores: List[float]
     model_version: Optional[str] = None
     model_reloaded: Optional[bool] = None
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "predictions": [True],
+                    "scores": [0.87],
+                    "model_version": "v1"
+                },
+                {
+                    "predictions": [False, True, False],
+                    "scores": [0.23, 0.91, 0.15],
+                    "model_version": "v2",
+                    "model_reloaded": True
+                }
+            ]
+        }
+    }
 
 
 @app.on_event("startup")
@@ -228,7 +297,24 @@ async def shutdown_event():
     print("[Shutdown] Model reload worker stopped")
 
 
-@app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
+@app.post(
+    "/predict",
+    response_model=PredictionResponse,
+    tags=["Prediction"],
+    summary="Run anomaly detection inference on input data",
+    description="""
+## Prediction API
+
+Run anomaly detection inference on input data. This endpoint processes input features 
+through the deployed ML model and returns predictions with confidence scores.
+
+### Features:
+- Real-time anomaly detection
+- Confidence scores for each prediction
+- Automatic prediction logging for monitoring
+- Automatic model version tracking
+"""
+)
 async def predict(request: PredictionRequest):
     global model, processor, monitoring_service, model_metadata
     
@@ -260,7 +346,21 @@ async def predict(request: PredictionRequest):
     )
 
 
-@app.get("/model/info", tags=["Model Management"])
+@app.get(
+    "/model/info",
+    tags=["Model Management"],
+    summary="Get information about the currently deployed model",
+    description="""
+## Model Management
+
+Retrieve detailed information about the currently deployed model version.
+
+### Returns:
+- Model name and version
+- Creation timestamp
+- Training metrics (accuracy, precision, recall, F1 score)
+"""
+)
 async def model_info():
     return {
         "model_name": model_metadata.get("model_name", "unknown"),
@@ -270,7 +370,17 @@ async def model_info():
     }
 
 
-@app.get("/model/reload", tags=["Model Management"])
+@app.get(
+    "/model/reload",
+    tags=["Model Management"],
+    summary="Force reload of model from registry",
+    description="""
+## Force Model Reload
+
+Manually trigger a reload of the model from the registry. This checks for new model 
+versions and hot-swaps the current model if a newer version is available.
+"""
+)
 async def trigger_model_reload():
     reloaded = reload_model_if_needed()
     return {
@@ -280,7 +390,20 @@ async def trigger_model_reload():
     }
 
 
-@app.get("/retraining/status", tags=["Retraining"])
+@app.get(
+    "/retraining/status",
+    tags=["Retraining"],
+    summary="Get retraining scheduler and manager status",
+    description="""
+## Retraining Status
+
+Retrieve the current status of the automated retraining system including:
+- Scheduler configuration and state
+- Last retraining timestamp
+- Current model version
+- Retraining thresholds
+"""
+)
 async def get_retraining_status():
     try:
         from ml_pipeline.retraining import get_retraining_scheduler
@@ -294,7 +417,19 @@ async def get_retraining_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/retraining/trigger", tags=["Retraining"])
+@app.post(
+    "/retraining/trigger",
+    tags=["Retraining"],
+    summary="Manually trigger the retraining pipeline",
+    description="""
+## Trigger Retraining
+
+Manually trigger the automated retraining pipeline. This will:
+1. Run the training pipeline with current data
+2. Save the new model version to the registry
+3. Reload the inference service with the new model
+"""
+)
 async def trigger_retraining():
     try:
         from ml_pipeline.retraining import get_retraining_scheduler
@@ -308,28 +443,83 @@ async def trigger_retraining():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/monitoring/metrics", tags=["Monitoring"])
+@app.get(
+    "/monitoring/metrics",
+    tags=["Monitoring"],
+    summary="Retrieve monitoring metrics for recent predictions",
+    description="""
+## Monitoring Metrics
+
+Retrieve aggregated monitoring metrics for recent predictions.
+
+### Query Parameters:
+- `window_minutes` (optional): Time window for metrics aggregation
+
+### Returns:
+- Prediction distribution (normal vs anomaly)
+- Anomaly rate
+- Confidence score statistics (mean, std, percentiles)
+"""
+)
 async def get_metrics(window_minutes: Optional[int] = None):
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_metrics_summary(window_minutes)
 
 
-@app.get("/monitoring/drift", tags=["Monitoring"])
+@app.get(
+    "/monitoring/drift",
+    tags=["Monitoring"],
+    summary="Get drift detection status",
+    description="""
+## Drift Detection
+
+Retrieve the current drift detection status including:
+- Prediction drift score
+- Anomaly rate drift from baseline
+- Confidence drift
+- Whether drift threshold has been exceeded
+"""
+)
 async def get_drift_status():
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_drift_status()
 
 
-@app.get("/monitoring/status", tags=["Monitoring"])
+@app.get(
+    "/monitoring/status",
+    tags=["Monitoring"],
+    summary="Get full monitoring system status",
+    description="""
+## Full System Status
+
+Get a comprehensive view of the monitoring system including:
+- All metrics summaries
+- Drift detection status
+- Time-series metrics
+"""
+)
 async def get_full_status():
     if monitoring_service is None:
         raise HTTPException(status_code=500, detail="Monitoring service not initialized")
     return monitoring_service.get_full_status()
 
 
-@app.get("/health", tags=["System"])
+@app.get(
+    "/health",
+    tags=["System"],
+    summary="Health check endpoint",
+    description="""
+## System Health
+
+Check the health status of the inference service including:
+- Service status
+- Model loading status
+- Current model version
+- Auto-reload configuration
+"""
+)
 async def health_check():
     return {
         "status": "healthy",
