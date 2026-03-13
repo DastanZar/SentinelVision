@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  inference:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    container_name: sentinelvision-inference
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_REGISTRY_PATH=/app/model_registry
+      - LOG_PATH=/app/logs/predictions.log
+      - ENVIRONMENT=production
+    volumes:
+      - ../model_registry:/app/model_registry
+      - sentinelvision-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - sentinelvision-network
+
+  monitoring:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    container_name: sentinelvision-monitoring
+    command: ["python", "-c", "import time; time.sleep(inf)"]
+    ports:
+      - "8001:8000"
+    environment:
+      - MODEL_REGISTRY_PATH=/app/model_registry
+      - LOG_PATH=/app/logs/predictions.log
+      - ENVIRONMENT=production
+      - MONITORING_MODE=true
+    volumes:
+      - ../model_registry:/app/model_registry
+      - sentinelvision-logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - sentinelvision-network
+    depends_on:
+      - inference
+
+volumes:
+  sentinelvision-logs:
+    driver: local
+
+networks:
+  sentinelvision-network:
+    driver: bridge

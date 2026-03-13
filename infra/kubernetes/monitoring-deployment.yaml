@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinelvision-monitoring
+  namespace: sentinelvision
+  labels:
+    app: sentinelvision
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sentinelvision
+      component: monitoring
+  template:
+    metadata:
+      labels:
+        app: sentinelvision
+        component: monitoring
+    spec:
+      containers:
+      - name: monitoring
+        image: sentinelvision/inference:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-c", "import time; time.sleep(inf)"]
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: MODEL_REGISTRY_PATH
+          value: "/app/model_registry"
+        - name: LOG_PATH
+          value: "/app/logs/predictions.log"
+        - name: ENVIRONMENT
+          value: "production"
+        - name: MONITORING_MODE
+          value: "true"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/model_registry
+        - name: log-storage
+          mountPath: /app/logs
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: sentinelvision-models
+      - name: log-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinelvision-monitoring
+  namespace: sentinelvision
+spec:
+  selector:
+    app: sentinelvision
+    component: monitoring
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  type: ClusterIP

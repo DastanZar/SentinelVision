@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinelvision-inference
+  namespace: sentinelvision
+  labels:
+    app: sentinelvision
+    component: inference
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sentinelvision
+      component: inference
+  template:
+    metadata:
+      labels:
+        app: sentinelvision
+        component: inference
+    spec:
+      containers:
+      - name: inference
+        image: sentinelvision/inference:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: MODEL_REGISTRY_PATH
+          value: "/app/model_registry"
+        - name: LOG_PATH
+          value: "/app/logs/predictions.log"
+        - name: ENVIRONMENT
+          value: "production"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/model_registry
+        - name: log-storage
+          mountPath: /app/logs
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: sentinelvision-models
+      - name: log-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinelvision-inference
+  namespace: sentinelvision
+spec:
+  selector:
+    app: sentinelvision
+    component: inference
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  type: ClusterIP

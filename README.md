@@ -139,14 +139,17 @@ record_prediction_event(
 ## Project Structure
 
 ```
-sentinelvision_core/     # Core ML models and preprocessing
-training/                # Training pipeline scripts
-inference_service/       # FastAPI inference service
-ml_pipeline/            # Pipeline orchestration
-monitoring/              # Monitoring and logging
-infra/                   # Deployment configurations
-configs/                 # Configuration files
-model_registry/          # Versioned model artifacts
+sentinelvision_core/       # Core ML models and preprocessing
+training/                  # Training pipeline scripts
+inference_service/         # FastAPI inference service
+ml_pipeline/               # Pipeline orchestration
+monitoring/                # Monitoring and logging
+infra/                     # Deployment configurations
+├── docker/               # Docker and Docker Compose
+├── kubernetes/           # Kubernetes manifests
+└── deployment_scripts/   # Deployment helper scripts
+configs/                  # Configuration files
+model_registry/            # Versioned model artifacts
 ```
 
 ## Getting Started
@@ -167,3 +170,76 @@ model_registry/          # Versioned model artifacts
      -H "Content-Type: application/json" \
      -d '{"data": [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]]}'
    ```
+
+## Deployment Architecture
+
+SentinelVision supports multiple deployment options for production ML serving:
+
+### Containerized Inference
+
+The inference service is containerized using Docker:
+
+```bash
+cd infra/docker
+docker build -t sentinelvision/inference:latest .
+```
+
+The Dockerfile:
+- Uses Python 3.11 slim base image
+- Installs all required dependencies
+- Exposes port 8000
+- Includes health checks
+- Starts the FastAPI inference service
+
+### Local Deployment with Docker Compose
+
+Run the full stack locally using Docker Compose:
+
+```bash
+cd infra/docker
+docker-compose up -d
+```
+
+This starts:
+- **inference service** - Main API on port 8000
+- **monitoring service** - Monitoring components on port 8001
+
+### Scalable Deployment with Kubernetes
+
+Deploy to Kubernetes for production scaling:
+
+```bash
+# Create cluster resources
+kubectl apply -f infra/kubernetes/namespace.yaml
+kubectl apply -f infra/kubernetes/pvc.yaml
+
+# Deploy services
+kubectl apply -f infra/kubernetes/inference-deployment.yaml
+kubectl apply -f infra/kubernetes/monitoring-deployment.yaml
+```
+
+Kubernetes manifests include:
+- **Namespace** - `sentinelvision` for isolation
+- **PersistentVolumeClaim** - For model storage
+- **Deployments** - 3 replicas for inference, 2 for monitoring
+- **Services** - ClusterIP services for internal communication
+
+### Configuration
+
+Environment variables and configurations are in `configs/`:
+
+- `app_config.yaml` - Application configuration
+- `env_template.env` - Environment variable template
+
+Key configuration options:
+- `MODEL_REGISTRY_PATH` - Location of model artifacts
+- `LOG_PATH` - Path for prediction logs
+- `DRIFT_THRESHOLD` - Threshold for drift detection
+- `BASELINE_ANOMALY_RATE` - Expected anomaly rate for drift comparison
+
+### Deployment Scripts
+
+Helper scripts in `infra/deployment_scripts/`:
+
+- `build.sh` - Build Docker image
+- `deploy_kubernetes.sh` - Deploy to Kubernetes
