@@ -1,0 +1,15 @@
+model:
+  name: "anomaly_detector"
+  version: "1.0.0"
+  threshold: 0.5
+  
+training:
+  epochs: 100
+  batch_size: 32
+  learning_rate: 0.001
+  validation_split: 0.2
+  
+preprocessing:
+  normalize: true
+  handle_missing: "mean"
+  feature_engineering: true
