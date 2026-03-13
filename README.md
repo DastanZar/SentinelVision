@@ -136,6 +136,56 @@ record_prediction_event(
 - `GET /monitoring/drift` - Get drift detection status
 - `GET /monitoring/status` - Get full system status
 
+## Automated Retraining System
+
+SentinelVision includes an automated retraining pipeline that continuously monitors model performance and triggers retraining when needed:
+
+### Retraining Manager
+
+The retraining manager (`ml_pipeline/retraining/retraining_manager.py`) handles:
+
+- Checking monitoring metrics for drift signals
+- Triggering the training pipeline
+- Registering new model versions in the registry
+
+```python
+from ml_pipeline.retraining import get_retraining_manager
+
+manager = get_retraining_manager()
+result = manager.trigger_retraining()
+```
+
+### Drift Trigger
+
+The monitoring system triggers retraining when:
+
+- **Prediction drift** exceeds threshold (default: 0.05)
+- **Anomaly rate spike** exceeds threshold (default: 0.3)
+
+The retraining scheduler (`ml_pipeline/retraining/retraining_scheduler.py`) periodically checks these metrics and automatically triggers retraining.
+
+### Model Hot-Reload
+
+The inference service supports hot-reloading of models without restart:
+
+- Automatically checks for new model versions every 60 seconds
+- Seamlessly switches to the latest model when available
+- Maintains prediction continuity during updates
+
+### Retraining API Endpoints
+
+- `GET /retraining/status` - Get retraining scheduler and manager status
+- `POST /retraining/trigger` - Manually trigger retraining
+- `GET /model/reload` - Force model reload from registry
+
+### Configuration
+
+Retraining can be configured via environment variables:
+
+- `DRIFT_THRESHOLD` - Threshold for drift detection triggering retraining
+- `ANOMALY_RATE_THRESHOLD` - Anomaly rate spike triggering retraining
+- `MIN_TRAINING_INTERVAL_HOURS` - Minimum time between retraining runs
+
 ## Project Structure
 
 ```
