@@ -4,294 +4,145 @@
 
 Tabular anomaly detection MLOps platform — automated training, drift detection, versioned model registry, and production-ready inference serving on Azure Kubernetes.
 
-## ML Lifecycle Pipeline
+## What This Is
 
-SentinelVision implements a complete ML lifecycle pipeline with the following components:
+SentinelVision is a production-style MLOps system built around tabular anomaly detection. It implements the full ML lifecycle: data ingestion, model training with experiment tracking, versioned artifact storage, drift-triggered automated retraining, and a FastAPI inference service with hot-reload support.
+
+The anomaly detection core uses [PyOD](https://github.com/yzhao062/pyod) — specifically IsolationForest and ECOD — which are state-of-the-art unsupervised outlier detection algorithms. The system supports both supervised evaluation (precision/recall/F1/ROC-AUC via sklearn) when labels are available, and unsupervised evaluation (anomaly ratio, score statistics) when they are not.
+
+## Architecture
+
+```
+sentinelvision_core/     # PyOD-based AnomalyDetector (IForest, ECOD)
+training/                # Training pipeline with MLflow experiment tracking
+inference_service/       # FastAPI serving with hot-reload and model versioning
+monitoring/              # PSI-based drift detection, prediction logging, metrics aggregation
+ml_pipeline/             # Automated retraining scheduler triggered by drift signals
+model_registry/          # Versioned model artifacts (model.pkl, metrics.json, metadata.json)
+infra/                   # Docker Compose + Kubernetes manifests
+tests/                   # pytest suite covering detector, training, and API
+```
+
+## Core Components
+
+### Anomaly Detector
+
+The `AnomalyDetector` class wraps PyOD models with a consistent interface:
+
+- `fit(X)` — trains the detector on a NumPy array
+- `predict(X)` — returns predictions (0=normal, 1=anomaly), anomaly scores, and decision threshold
+- `save(path)` / `load(path)` — joblib serialization with full state preservation
+- Supports `iforest` (IsolationForest) and `ecod` (ECOD) via `model_type` config
 
 ### Training Pipeline
 
-The training pipeline (`training/train_pipeline.py`) orchestrates the full model training workflow:
+The training pipeline (`training/train_pipeline.py`) requires a real CSV dataset — there is no synthetic data fallback by design.
 
-1. **Load Dataset** - Loads training data from CSV or generates synthetic data
-2. **Data Preprocessing** - Normalizes features using standard scaling
-3. **Model Training** - Trains the AnomalyDetector model
-4. **Model Evaluation** - Computes accuracy, precision, recall, and F1 score
-5. **Model Artifact Saving** - Saves trained model with metrics and metadata
-
-Run the training pipeline:
 ```bash
-python training/train_pipeline.py
+# Unsupervised (no labels)
+python training/train_pipeline.py data/train.csv
+
+# Supervised (with label column)
+python training/train_pipeline.py data/train.csv label
 ```
 
-### Model Registry
-
-The model registry (`model_registry/`) stores versioned model artifacts:
-
-```
-model_registry/
-├── model_v1/
-│   ├── model.pkl       # Trained model file
-│   ├── metrics.json    # Training metrics
-│   └── metadata.json   # Model metadata
-├── model_v2/
-│   └── ...
-└── latest -> model_v1/ # Symlink to latest version
-```
-
-Each model version contains:
-- **model.pkl** - Serialized model artifact
-- **metrics.json** - Training/evaluation metrics (accuracy, precision, recall, F1)
-- **metadata.json** - Model version, creation timestamp, configuration
+Each run:
+1. loads and validates the CSV
+2. StandardScaler preprocessing
+3. trains the PyOD detector
+4. evaluates: precision/recall/F1/ROC-AUC (supervised) or anomaly ratio/score stats (unsupervised)
+5. logs all params, metrics, and model artifact to MLflow
+6. saves versioned artifact to `model_registry/model_vN/`
+7. updates `model_registry/latest.txt` pointer
 
 ### Inference Service
 
-The inference service (`inference_service/api.py`) provides a FastAPI endpoint for predictions:
-
-- Automatically loads the latest model version from the registry
-- Serves predictions via REST API
-- Returns confidence scores with each prediction
-
-Start the inference service:
 ```bash
 python inference_service/api.py
 ```
 
-API Endpoints:
-- `POST /predict` - Make predictions
-- `GET /model/info` - Get current model information
-- `GET /health` - Health check
+Endpoints:
+- `POST /predict` — accepts `{"data": [[f1, f2, ...]]}`, returns predictions and anomaly scores
+- `GET /health` — service status and loaded model version
+- `GET /model/info` — current model metadata
+- `POST /retraining/trigger` — manually trigger retraining
+- `GET /monitoring/metrics` — aggregated prediction metrics
+- `GET /monitoring/drift` — current drift status
 
-### Monitoring
+The service hot-reloads the model from registry every 60 seconds without restart.
 
-The monitoring module (`monitoring/`) tracks model performance:
+### Monitoring and Drift Detection
 
-- **prediction_logger.py** - Logs predictions with timestamp, confidence score, and model version
-- **metrics.py** - Calculates model performance metrics
-- **drift_detector.py** - Detects data drift using statistical methods
-- **monitoring_service.py** - Coordinates all monitoring components
+Drift detection uses **Population Stability Index (PSI)** on prediction distributions. When drift exceeds threshold (default: 0.05) or anomaly rate spikes beyond 0.3, the retraining scheduler automatically triggers a new training run and promotes the new model version.
 
-Prediction logs include:
-- Prediction result
-- Confidence score
-- Timestamp
-- Model version
-
-## Monitoring and Observability
-
-SentinelVision provides a comprehensive monitoring infrastructure for production ML systems:
-
-### Prediction Logging
-
-Every prediction is logged with rich metadata in JSON format:
-
-```python
-{
-    "timestamp": "2026-01-15T10:30:00Z",
-    "input_metadata": {},
-    "input_data": [1.0, 2.0, 3.0, ...],
-    "prediction": true,
-    "confidence_score": 0.85,
-    "model_version": "v1"
-}
-```
-
-Logs are stored in `logs/predictions.log` and can be queried for analysis.
-
-### Metrics Aggregation
-
-The metrics aggregator (`monitoring/metrics_aggregator.py`) calculates:
-
-- **Prediction Distribution** - Ratio of normal vs anomaly predictions
-- **Anomaly Rate** - Percentage of anomalies detected
-- **Confidence Statistics** - Mean, std, min, max, percentiles of confidence scores
-
-Metrics can be queried for specific time windows using the API.
-
-### Drift Detection
-
-The drift detector (`monitoring/drift_detector.py`) monitors:
-
-- **Prediction Drift** - Changes in anomaly rate compared to baseline
-- **Feature Drift** - Changes in input feature distributions
-- **Confidence Drift** - Changes in model confidence over time
-
-Drift detection uses Population Stability Index (PSI) and statistical thresholds.
-
-### Model Health Monitoring
-
-The monitoring service (`monitoring/monitoring_service.py`) provides a unified interface:
-
-```python
-from monitoring.monitoring_service import record_prediction_event
-
-record_prediction_event(
-    input_data=[1.0, 2.0, 3.0],
-    prediction=True,
-    confidence_score=0.85,
-    model_version="v1"
-)
-```
-
-### API Endpoints for Monitoring
-
-- `GET /monitoring/metrics` - Get current metrics summary
-- `GET /monitoring/drift` - Get drift detection status
-- `GET /monitoring/status` - Get full system status
-
-## Automated Retraining System
-
-SentinelVision includes an automated retraining pipeline that continuously monitors model performance and triggers retraining when needed:
-
-### Retraining Manager
-
-The retraining manager (`ml_pipeline/retraining/retraining_manager.py`) handles:
-
-- Checking monitoring metrics for drift signals
-- Triggering the training pipeline
-- Registering new model versions in the registry
-
-```python
-from ml_pipeline.retraining import get_retraining_manager
-
-manager = get_retraining_manager()
-result = manager.trigger_retraining()
-```
-
-### Drift Trigger
-
-The monitoring system triggers retraining when:
-
-- **Prediction drift** exceeds threshold (default: 0.05)
-- **Anomaly rate spike** exceeds threshold (default: 0.3)
-
-The retraining scheduler (`ml_pipeline/retraining/retraining_scheduler.py`) periodically checks these metrics and automatically triggers retraining.
-
-### Model Hot-Reload
-
-The inference service supports hot-reloading of models without restart:
-
-- Automatically checks for new model versions every 60 seconds
-- Seamlessly switches to the latest model when available
-- Maintains prediction continuity during updates
-
-### Retraining API Endpoints
-
-- `GET /retraining/status` - Get retraining scheduler and manager status
-- `POST /retraining/trigger` - Manually trigger retraining
-- `GET /model/reload` - Force model reload from registry
-
-### Configuration
-
-Retraining can be configured via environment variables:
-
-- `DRIFT_THRESHOLD` - Threshold for drift detection triggering retraining
-- `ANOMALY_RATE_THRESHOLD` - Anomaly rate spike triggering retraining
-- `MIN_TRAINING_INTERVAL_HOURS` - Minimum time between retraining runs
-
-## Project Structure
-
-```
-sentinelvision_core/       # Core ML models and preprocessing
-training/                  # Training pipeline scripts
-inference_service/         # FastAPI inference service
-ml_pipeline/               # Pipeline orchestration
-monitoring/                # Monitoring and logging
-infra/                     # Deployment configurations
-├── docker/               # Docker and Docker Compose
-├── kubernetes/           # Kubernetes manifests
-└── deployment_scripts/   # Deployment helper scripts
-configs/                  # Configuration files
-model_registry/            # Versioned model artifacts
-```
-
-## Getting Started
-
-1. Train a model:
-   ```bash
-   python training/train_pipeline.py
-   ```
-
-2. Start inference service:
-   ```bash
-   python inference_service/api.py
-   ```
-
-3. Make predictions:
-   ```bash
-   curl -X POST http://localhost:8000/predict \
-     -H "Content-Type: application/json" \
-     -d '{"data": [[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]]}'
-   ```
-
-## Deployment Architecture
-
-SentinelVision supports multiple deployment options for production ML serving:
-
-### Containerized Inference
-
-The inference service is containerized using Docker:
+## Running Locally
 
 ```bash
-cd infra/docker
-docker build -t sentinelvision/inference:latest .
+# Install
+pip install -e .
+pip install -r requirements.txt
+
+# Train a model (requires a CSV)
+python training/train_pipeline.py path/to/data.csv
+
+# Start inference service
+python inference_service/api.py
+
+# Make a prediction
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"data": [[0.5, 1.2, -0.3, 0.8, 2.1]]}'
+
+# Run tests
+pytest tests/ -v
 ```
 
-The Dockerfile:
-- Uses Python 3.11 slim base image
-- Installs all required dependencies
-- Exposes port 8000
-- Includes health checks
-- Starts the FastAPI inference service
-
-### Local Deployment with Docker Compose
-
-Run the full stack locally using Docker Compose:
+## Docker Compose
 
 ```bash
 cd infra/docker
 docker-compose up -d
 ```
 
-This starts:
-- **inference service** - Main API on port 8000
-- **monitoring service** - Monitoring components on port 8001
+Starts inference service on port 8000 and monitoring service on port 8001.
 
-### Scalable Deployment with Kubernetes
-
-Deploy to Kubernetes for production scaling:
+## Kubernetes
 
 ```bash
-# Create cluster resources
 kubectl apply -f infra/kubernetes/namespace.yaml
 kubectl apply -f infra/kubernetes/pvc.yaml
-
-# Deploy services
 kubectl apply -f infra/kubernetes/inference-deployment.yaml
 kubectl apply -f infra/kubernetes/monitoring-deployment.yaml
 ```
 
-Kubernetes manifests include:
-- **Namespace** - `sentinelvision` for isolation
-- **PersistentVolumeClaim** - For model storage
-- **Deployments** - 3 replicas for inference, 2 for monitoring
-- **Services** - ClusterIP services for internal communication
+3 replicas for inference, 2 for monitoring, with PersistentVolumeClaim for model storage.
 
-### Configuration
+## MLflow Tracking
 
-Environment variables and configurations are in `configs/`:
+All training runs are tracked under the `sentinelvision-anomaly-training` experiment. Each run logs:
+- **Params:** model_type, contamination, data_path
+- **Metrics:** precision, recall, f1_score, roc_auc (supervised) or anomaly_ratio, score_mean/std (unsupervised)
+- **Tags:** project, model_type, dataset
+- **Artifacts:** versioned model directory
 
-- `app_config.yaml` - Application configuration
-- `env_template.env` - Environment variable template
+```bash
+mlflow ui
+# Open http://localhost:5000
+```
 
-Key configuration options:
-- `MODEL_REGISTRY_PATH` - Location of model artifacts
-- `LOG_PATH` - Path for prediction logs
-- `DRIFT_THRESHOLD` - Threshold for drift detection
-- `BASELINE_ANOMALY_RATE` - Expected anomaly rate for drift comparison
+## Tests
 
-### Deployment Scripts
+```bash
+pytest tests/ -v
+```
 
-Helper scripts in `infra/deployment_scripts/`:
+Covers: fit/predict correctness, save/load round-trip, predict-before-fit error handling, ECOD model support, invalid model type validation, anomaly ratio vs contamination tolerance.
 
-- `build.sh` - Build Docker image
-- `deploy_kubernetes.sh` - Deploy to Kubernetes
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `MODEL_REGISTRY_PATH` | `model_registry` | Path to versioned model artifacts |
+| `DRIFT_THRESHOLD` | `0.05` | PSI threshold triggering retraining |
+| `ANOMALY_RATE_THRESHOLD` | `0.3` | Anomaly spike threshold |
+| `MIN_TRAINING_INTERVAL_HOURS` | `1` | Minimum hours between retraining runs |
