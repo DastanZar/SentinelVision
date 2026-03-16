@@ -92,33 +92,6 @@ model_reload_thread: Optional[threading.Thread] = None
 stop_reload_event = threading.Event()
 
 
-@app.get("/docs", include_in_schema=False)
-async def custom_docs():
-    return get_swagger_ui_html(
-        openapi_url="/openapi.json",
-        title="SentinelVision AI Platform",
-        swagger_ui_parameters={
-            "syntaxHighlight": {"theme": "monokai"},
-            "tryItOutEnabled": True,
-            "persistAuthorization": True,
-            "docExpansion": "list",
-            "filter": True,
-            "showExtensions": True,
-            "showCommonExtensions": True,
-        },
-        swagger_css_url="/static/swagger.css",
-    )
-
-
-@app.get("/redoc", include_in_schema=False)
-async def redoc():
-    from fastapi.openapi.docs import get_redoc_html
-    return get_redoc_html(
-        openapi_url="/openapi.json",
-        title="SentinelVision AI Platform - ReDoc"
-    )
-
-
 def find_latest_model_version() -> Path:
     if not MODEL_REGISTRY_PATH.exists():
         raise FileNotFoundError(f"Model registry not found at {MODEL_REGISTRY_PATH}")

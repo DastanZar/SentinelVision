@@ -1,6 +1,8 @@
 # SentinelVision
 
-An ML-powered anomaly detection system with full MLOps lifecycle management.
+![Python](https://img.shields.io/badge/python-3.11-blue) ![MLflow](https://img.shields.io/badge/MLflow-tracking-orange) ![PyOD](https://img.shields.io/badge/PyOD-anomaly--detection-green) ![CI](https://github.com/DastanZar/SentinelVision/actions/workflows/ci.yml/badge.svg)
+
+Tabular anomaly detection MLOps platform — automated training, drift detection, versioned model registry, and production-ready inference serving on Azure Kubernetes.
 
 ## ML Lifecycle Pipeline
 
